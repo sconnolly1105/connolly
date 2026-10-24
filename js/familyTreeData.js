@@ -391,7 +391,7 @@ Place of Residence:	Oranmore, Co. Galway
             },
 
             {
-              label: "Elließ Jun 30, 1910-Nov 1992 : married to Tony Powell",
+              label: "Ellie Jun 30, 1910-Nov 1992 : married to Tony Powell",
               bioActive: "active",
               bio: `Name:				#b##u#Ellie Powell (nee Conneely)#!u##!b#
 
