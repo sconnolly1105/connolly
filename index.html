@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>** Connolly Family Tree ** </title>
+
+  <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.16/jstree.min.js"></script>
+  <script src="js/familyTreeData.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.16/themes/default/style.min.css" />
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌲</text></svg>">
+
+  <style>
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: small;
+      background-color: white;
+    }
+    h2 { font-style: italic; display: inline-block; margin: 0.25rem 0 0.25rem; }
+    li:hover { cursor: pointer; }
+
+    #info {
+      position: fixed;
+      top: 1em;
+      right: 1em;
+      border: 2px solid;
+      line-height: 1;
+      padding: 6px;
+      background-color: white;
+      box-sizing: border-box;
+      max-width: 30em;
+    }
+    #info p { margin: 0.25rem 0; }
+
+    #outer {
+      position: fixed;
+      top: 1em;
+      right: 1em;
+      width: 500px;
+      max-height: calc(100vh - 80px - 20px);
+      padding: 1px;
+      display: none;
+      border: solid black;
+      border-width: 1px;
+      box-sizing: border-box;
+    }
+    #header {
+      background-color: #E4E4E4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #heading {
+      font-size: 130%;
+      color: black;
+      font-weight: bold;
+      padding: 5px;
+      cursor: initial;
+    }
+    #close {
+      font-size: 140%;
+      color: black;
+      cursor: pointer;
+      padding-right: 0.5em;
+      position: absolute;
+      right: 2px;
+    }
+    #close:hover { cursor: pointer; }
+    #inner {
+      width: 490px;
+      max-height: calc(100vh - 80px - 20px - 40px);
+      background-color: white;
+      color: black;
+      padding: 8px;
+      white-space: pre-wrap;
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+
+    .bio-thumbnail {
+      float: right;
+      width: 80px;
+      margin: 0 0 8px 12px;
+      cursor: pointer;
+      border: 1px solid #999;
+    }
+
+    #lightbox {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.85);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+    /************************
+    * Start of Lightbox Zoom CSS
+    ************************/
+    #lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border: 3px solid white;
+      cursor: zoom-in;
+      transition: transform 0.2s ease;
+    }
+    #lightbox.zoomed {
+      overflow: auto;              /* allows panning by scrolling when zoomed */
+      justify-content: flex-start; /* let the enlarged image overflow naturally */
+      align-items: flex-start;
+      cursor: auto;
+    }
+    #lightbox.zoomed img {
+      max-width: none;
+      max-height: none;
+      width: 180vw;                /* zoom level — adjust to taste */
+      height: auto;
+      cursor: zoom-out;
+      margin: auto;                /* keeps smaller-than-viewport images centred */
+    }
+    /************************
+    * End of Lightbox Zoom CSS
+    ************************/
+    .jstree-default .jstree-ocl {
+      background: none !important;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-style: normal;
+      font-weight: normal;
+      font-size: 10px;
+      width: 24px;
+      height: 24px;
+    }
+    .jstree-default .jstree-closed > .jstree-ocl::before {
+      content: '▶';
+      color: white;
+      text-shadow: 0 0 1px #333;
+    }
+    .jstree-default .jstree-open > .jstree-ocl::before {
+      content: '▼';
+      color: #333;
+    }
+    .jstree-default .jstree-leaf > .jstree-ocl::before {
+      content: '';
+    }
+
+    #gallery {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.92);
+      z-index: 9998;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #gallery-header {
+      position: relative;
+      width: 80vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    #gallery-title {
+      color: white;
+      font-size: 1.3em;
+      font-weight: bold;
+    }
+    #gallery-close {
+      position: absolute;
+      right: 0;
+      color: white;
+      font-size: 1.8em;
+      cursor: pointer;
+    }
+    #gallery-body {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    #gallery-prev, #gallery-next {
+      color: white;
+      font-size: 2.5em;
+      cursor: pointer;
+      user-select: none;
+      padding: 0 10px;
+    }
+    #gallery-prev:hover, #gallery-next:hover { color: #ccc; }
+    #gallery-img-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #gallery-img {
+      max-width: 70vw;
+      max-height: 75vh;
+      border: 3px solid white;
+    }
+    #gallery-caption {
+      color: white;
+      margin-top: 8px;
+      font-size: 0.95em;
+      text-align: center;
+    }
+    #gallery-counter {
+      color: #aaa;
+      margin-top: 10px;
+      font-size: 0.85em;
+    }
+
+    /* Hide manual controls while a slideshow is running */
+    #gallery.slideshow-mode #gallery-prev,
+    #gallery.slideshow-mode #gallery-next,
+    #gallery.slideshow-mode #gallery-close {
+      display: none;
+    }
+
+    /* On-screen tooltip text shown only during slideshow (native hover tooltip cannot fire automatically) */
+    #slideshow-tooltip {
+      display: none;
+      position: absolute;
+      max-width: 60vw;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      padding: 8px 14px;
+      font-size: 0.9em;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      text-align: center;
+      z-index: 10000;
+    }
+    #slideshow-tooltip.pos-top-left      { top: 20px;    left: 20px; }
+    #slideshow-tooltip.pos-top-right     { top: 20px;    right: 20px; }
+    #slideshow-tooltip.pos-bottom-left   { bottom: 20px; left: 20px; }
+    #slideshow-tooltip.pos-bottom-right  { bottom: 20px; right: 20px; }
+    #slideshow-tooltip.pos-top-middle    { top: 20px;    left: 50%; transform: translateX(-50%); }
+    #slideshow-tooltip.pos-bottom-middle { bottom: 20px; left: 50%; transform: translateX(-50%); }
+    #slideshow-tooltip.pos-centre        { top: 50%;     left: 50%; transform: translate(-50%, -50%); }
+
+    #inner {
+      width: 490px;
+      max-height: calc(100vh - 80px - 20px - 40px);
+      background-color: white;
+      color: black;
+      padding: 8px;
+      overflow-y: auto;
+      box-sizing: border-box;
+      /* Remove white-space: pre-wrap — we handle line breaks manually now */
+    }
+
+    #inner .bio-grid {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      column-gap: 12px;
+      row-gap: 3px;
+      align-items: baseline;
+    }
+
+    #inner .bio-label {
+      font-weight: normal;
+      white-space: nowrap;
+    }
+
+    #inner .bio-full {
+      grid-column: 1 / -1;
+      margin-top: 6px;
+    }
+
+    /* Info box — hidden by default, centred when shown */
+    #info {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border: 2px solid;
+      line-height: 1.6;
+      padding: 16px 20px;
+      background-color: white;
+      box-sizing: border-box;
+      z-index: 9997;
+      min-width: 280px;
+    }
+
+    #info-close {
+      position: absolute;
+      top: 4px;
+      right: 8px;
+      font-size: 1.4em;
+      cursor: pointer;
+      color: black;
+    }
+
+      .jstree-default .jstree-anchor {
+      line-height: 1.5 !important;
+      height: auto;
+    }
+
+
+    /************************
+     * Start of Search CSS
+     ************************/
+    #search-wrap {
+      position: relative;
+      display: inline-block;
+    }
+    #tree-search {
+      width: 220px;
+      padding: 3px 6px;
+      font-size: 1em;
+      border: 1px solid #999;
+      border-radius: 3px;
+    }
+    #search-results {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 20px;
+      z-index: 9996;
+      background: white;
+      border: 1px solid #999;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.25);
+      max-height: 300px;
+      max-width: 600px;
+      overflow-y: auto;
+    }
+    #search-results div {
+      padding: 5px 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #search-results div:hover {
+      background: #e8f0fe;
+    }
+    /************************
+     * End of Search CSS
+     ************************/
+  </style>
+</head>
+<body>
+
+  <!-- Infor box is now a popup -->
+  <div id="info">
+    <span id="info-close" onclick="document.getElementById('info').style.display='none'">x</span>
+    <p><b>Information:</b> Births prior to 1864 were not registered and are therefore unavailable. In such cases, the year of birth has been estimated from the age at death given on the death registration. These estimates are denoted in the tree with the prefix "c.", e.g. c. 1862. Records of births after 1925 are not yet available online; likewise, only deaths registered between 1871 and 1975 are currently available &mdash; though this is a moving feast, as more records are released each year.</p>
+    <p><b>Note:</b> Click on the arrow to the left of a name in the tree to open that node.</p>
+    <p>Clicking on any thumbnail image on this site will enlarge it.</p>
+    <p>Click <a href="#" onclick="openGallery(); return false;">here</a> for more family photos.</p>
+    <p>Press Ctrl + S (Command + S on a Mac) to view a slideshow of these photos. Press Esc twice to exit the slideshow.</p>
+  </div>
+
+  <!--- Page Heading -->
+  <h2>🌲 Connolly Family Tree</h2>&nbsp;&nbsp;&nbsp;
+  <span style="font-size:1.1em;">ℹ️</span>
+  Click <a href="#" onclick="document.getElementById('info').style.display='block'; return false;">here</a> for further information 
+  <!------------------------
+    Start of Search HTML
+  ------------------------->
+  <span id="search-wrap">
+    &nbsp;&nbsp;&nbsp;🔍
+    <input type="text" id="tree-search" placeholder="Search for a person..." autocomplete="off">
+    <div id="search-results"></div>
+  </span>
+  <!------------------------
+    End of Search HTML
+  ------------------------->
+  <br><br>
+
+  <div id="data">
+    <ul id="org" style="display:none"></ul>
+  </div>
+
+  <div id="outer">
+    <div id="header">
+      <span id="heading">Bio</span>
+      <span id="close" title="close" onclick="return closeDiv()">x</span>
+    </div>
+    <div id="inner"></div>
+  </div>
+
+  <div id="lightbox" onclick="closeLightbox()">
+    <img id="lightbox-img" src="" alt="">
+  </div>
+
+  <div id="gallery">
+    <div id="gallery-header">
+      <span id="gallery-title">Connolly Family Photos</span>
+      <span id="gallery-close" onclick="closeGallery()">x</span>
+    </div>
+    <div id="gallery-body">
+      <span id="gallery-prev" onclick="galleryStep(-1)">&#10094;</span>
+      <div id="gallery-img-wrap">
+        <img id="gallery-img" src="" alt="">
+        <div id="gallery-caption"></div>
+      </div>
+      <span id="gallery-next" onclick="galleryStep(1)">&#10095;</span>
+    </div>
+    <div id="gallery-counter"></div>
+    <div id="slideshow-tooltip"></div>
+  </div>
+
+  <script>
+
+  const galleryImages = [
+    {
+      file: "images/PatsysDeath.jpg",
+      caption: "My great-grandfather's death registration",
+      tooltip: ``
+    },
+    {
+      file: "images/MargaretsDeath.jpg",
+      caption: "My great-grandmother's death registration"
+    },
+    {
+      file: "images/MichaelsDeath1936.jpg",
+      caption: "My great-grand uncle Michael Conneely's death registration"
+    },
+    {
+      file: "images/JimmysDeath1947.jpg",
+      caption: "Grandfather Jimmy's death registration"
+    },
+    {
+      file: "images/MaryAnnsDeath1962.jpg",
+      caption: "My grandmother Mary Ann's death registration in 1962"
+    },
+    {
+      file: "images/JohnsBirth1900.jpg",
+      caption: "My uncle John's birth registration in 1900"
+    },
+    {
+      file: "images/JohnsDeath1900.jpg",
+      caption: "My uncle John's death registration in 1900"
+    },
+    {
+      file: "images/JoeAndLeahsGraves.png",
+      caption: "Graves of my uncle Joe and his wife Leah, Sacremento, CA USA"
+    },
+    {
+      file: "images/MollysBirth1904.jpg",
+      caption: "My aunt Molly's birth registration"
+    },
+    {
+      file: "images/MollysDeath1915.jpg",
+      caption: "My aunt Molly's death registration"
+    },
+    {
+      file: "images/MichaelsDeath1936.jpg",
+      caption: "Death registration of my great-uncle Michael Conneely"
+    },
+    {
+      file: "images/MicksBirth1912.jpg",
+      caption: "Birth registration of my uncle Mick"
+    },
+    {
+      file: "images/MicksDeath1963.jpg",
+      caption: "Death registration of my uncle Mick"
+    },
+    {
+      file: "images/AnnsDeath1941.jpg",
+      caption: "Death registration of my great-aunt Ann"
+    },
+    {
+      file: "images/MarysBirth1865.jpg",
+      caption: "Birth registration of my great-aunt Mary"
+    },
+    {
+      file: "images/MarysDeath1951.jpg",
+      caption: "Death registration of my great-aunt Mary"
+    },
+    {
+      file: "images/WilliamsBirth1868.jpg",
+      caption: "Birth registration of my great-uncle William"
+    },
+    {
+      file: "images/WilliamsDeath1945.jpg",
+      caption: "Birth registration of my great-uncle William"
+    }
+  ];
+
+  /******************************************************************
+   * SLIDESHOW SETTINGS
+   ******************************************************************/
+  const slideshowInterval = 7000;          // milliseconds between slides
+  const showSlideshowCaptions = true;      // show captions during slideshow
+  const showSlideshowTooltip = true;       // show tooltip text during slideshow
+  const slideshowTooltipPosition = "bottom-middle";
+  // valid values: top-left | top-right | bottom-left | bottom-right | top-middle | bottom-middle | centre
+
+  const galleryFolder = "";
+  let galleryIndex = 0;
+  let slideshowTimer = null;
+  let slideshowMode = false;   // true only while an auto-advancing slideshow is running
+
+function buildLiFromNode(node) {
+  const li = document.createElement("li");
+  if (node.opened === true) {
+    li.setAttribute("data-jstree", JSON.stringify({ opened: true }));
+  }
+  if (node.bio) {
+    li.setAttribute("data-bio", node.bio);
+  }
+  if (node.bioActive) {
+    li.setAttribute("data-bioactive", node.bioActive);
+  }
+  li.appendChild(document.createTextNode(node.label));
+  if (Array.isArray(node.children) && node.children.length) {
+    const ul = document.createElement("ul");
+    node.children.forEach(child => ul.appendChild(buildLiFromNode(child)));
+    li.appendChild(ul);
+  }
+  return li;
+}
+	  
+  function renderFamilyTree(rootData, targetUlId) {
+    const ul = document.getElementById(targetUlId);
+    if (!ul) return;
+    ul.innerHTML = "";
+    ul.appendChild(buildLiFromNode(rootData));
+  }
+
+  function showBio(bioText) {
+    let html = bioText;
+    html = html.replace(/#b#/gi,  "<b>");
+    html = html.replace(/#!b#/gi, "</b>");
+    html = html.replace(/#u#/gi,  "<u>");
+    html = html.replace(/#!u#/gi, "</u>");
+
+    /************************
+     * Start of Bio Linkify
+     ************************/
+    // Make bare URLs clickable (opens in a new tab).
+    // The leading (^|[\s>]) guard prevents matching URLs already inside
+    // attribute quotes such as <img src="...">.
+    html = html.replace(/(^|[\s>])(https?:\/\/[^\s<]+)/g,
+      '$1<a href="$2" target="_blank">$2</a>');
+    // Link every mention of the Higgins Family Tree to the Higgins site
+    html = html.replace(/Higgins Family Tree/g,
+      '<a href="https://sconnolly1105.github.io/higgins/?search=Nan Aug 18" target="_blank">Higgins Family Tree</a>');
+    /************************
+     * End of Bio Linkify
+     ************************/
+
+    // Split into lines and build a grid for label:value lines,
+    // leaving free-text lines as full-width paragraphs
+    const lines = html.split(/\n/);
+    let result = '<div class="bio-grid">';
+
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed === "") {
+        // Empty line — close and reopen grid to create visual gap
+        result += '</div><div style="height:6px"></div><div class="bio-grid">';
+      } else if (trimmed.includes("\t")) {
+        // Tab-separated line — treat as label + value pair
+        const parts = trimmed.split(/\t+/);
+        const label = parts[0];
+        const value = parts.slice(1).join(" ").trim();
+        result += `<span class="bio-label">${label}</span><span>${value}</span>`;
+      } else {
+        // Free text line (headings, paragraphs, image tags)
+        result += `<span class="bio-full">${trimmed}</span>`;
+      }
+    });
+
+    result += '</div>';
+
+    document.getElementById("inner").innerHTML = result;
+
+    const outer = document.getElementById("outer");
+    const header = document.getElementById("header");
+    const inner = document.getElementById("inner");
+
+    outer.style.display = "block";
+
+    const topOffset = outer.getBoundingClientRect().top;
+    const viewportHeight = window.innerHeight;
+    const availableHeight = viewportHeight - topOffset - 20;
+    const headerHeight = header.offsetHeight;
+
+    outer.style.maxHeight = availableHeight + "px";
+    inner.style.maxHeight = (availableHeight - headerHeight) + "px";
+
+    return false;
+  }
+
+  function closeDiv() {
+    document.getElementById("outer").style.display = "none";
+    return false;
+  }
+
+    /************************
+     * Start of Lightbox with Zoom
+     ************************/
+    function openLightbox(src, alt) {
+      document.getElementById("lightbox-img").src = src;
+      document.getElementById("lightbox-img").alt = alt;
+      document.getElementById("lightbox").classList.remove("zoomed");
+      document.getElementById("lightbox").style.display = "flex";
+    }
+
+    function closeLightbox() {
+      document.getElementById("lightbox").style.display = "none";
+      document.getElementById("lightbox").classList.remove("zoomed");
+    }
+
+    // Clicking the IMAGE toggles zoom; clicking the dark BACKGROUND closes.
+    // stopPropagation prevents the image click from bubbling up to the
+    // background's closeLightbox() handler.
+    document.getElementById("lightbox-img").addEventListener("click", function (e) {
+      e.stopPropagation();
+      const lb = document.getElementById("lightbox");
+      lb.classList.toggle("zoomed");
+      if (!lb.classList.contains("zoomed")) {
+        lb.scrollTop = 0;
+        lb.scrollLeft = 0;
+      }
+    });
+    /************************
+     * End of Lightbox with Zoom
+     ************************/
+
+  /******************************************************************
+   * GALLERY — MANUAL BROWSING (arrows + close button active)
+   ******************************************************************/
+  function openGallery() {
+    if (galleryImages.length === 0) return;
+    slideshowMode = false;
+    document.getElementById("gallery").classList.remove("slideshow-mode");
+    document.getElementById("slideshow-tooltip").style.display = "none";
+    galleryIndex = 0;
+    galleryShow();
+    document.getElementById("gallery").style.display = "flex";
+  }
+
+  function closeGallery() {
+    document.getElementById("gallery").style.display = "none";
+  }
+
+  function galleryStep(direction) {
+    galleryIndex = (galleryIndex + direction + galleryImages.length) % galleryImages.length;
+    galleryShow();
+  }
+  function galleryShow() {
+    const item = galleryImages[galleryIndex];
+    const img = document.getElementById("gallery-img");
+    const captionEl = document.getElementById("gallery-caption");
+    const tooltipEl = document.getElementById("slideshow-tooltip");
+
+    img.src = galleryFolder + item.file;
+    img.alt = item.caption || "";
+    captionEl.textContent = item.caption || "";
+
+    // Tooltip shown as on-screen text in BOTH manual and slideshow modes
+    if (showSlideshowTooltip && item.tooltip) {
+      tooltipEl.textContent = item.tooltip;
+      tooltipEl.className = "pos-" + slideshowTooltipPosition;
+      tooltipEl.style.display = "block";
+    } else {
+      tooltipEl.style.display = "none";
+    }
+
+    // Caption suppression only applies during slideshow
+    if (slideshowMode && !showSlideshowCaptions) {
+      captionEl.textContent = "";
+      img.alt = "";
+    }
+
+    document.getElementById("gallery-counter").textContent =
+      (galleryIndex + 1) + " of " + galleryImages.length;
+  }
+  /******************************************************************
+   * SLIDESHOW — AUTO-ADVANCING, FULL SCREEN, NO MANUAL CONTROLS
+   ******************************************************************/
+  function startSlideshow() {
+    if (galleryImages.length === 0) return;
+
+    // Always clear any pre-existing timer first to avoid multiple overlapping timers
+    if (slideshowTimer) {
+      clearInterval(slideshowTimer);
+      slideshowTimer = null;
+    }
+
+    slideshowMode = true;
+    document.getElementById("gallery").classList.add("slideshow-mode");
+    galleryIndex = 0;
+    galleryShow();
+    document.getElementById("gallery").style.display = "flex";
+    document.getElementById("gallery").requestFullscreen?.();
+    slideshowTimer = setInterval(() => galleryStep(1), slideshowInterval);
+  }
+
+  function stopSlideshow() {
+    clearInterval(slideshowTimer);
+    slideshowTimer = null;
+    slideshowMode = false;
+    document.getElementById("gallery").classList.remove("slideshow-mode");
+    document.getElementById("slideshow-tooltip").style.display = "none";
+    if (document.fullscreenElement) document.exitFullscreen();
+    closeGallery();
+  }
+
+  /******************************************************************
+   * KEYBOARD CONTROLS
+   * Cmd+S (Mac) or Ctrl+S (Windows/Linux) → start slideshow
+   * Left/Right arrows  → step through gallery manually (manual mode only)
+   * Escape             → stop slideshow if running, else close gallery
+   ******************************************************************/
+  document.addEventListener("keydown", function (e) {
+    const gallery = document.getElementById("gallery");
+
+    if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+      e.preventDefault();
+      startSlideshow();
+      return;
+    }
+
+    if (gallery.style.display !== "flex") return;
+
+    if (e.key === "ArrowLeft" && !slideshowMode) {
+      galleryStep(-1);
+    } else if (e.key === "ArrowRight" && !slideshowMode) {
+      galleryStep(1);
+    } else if (e.key === "Escape") {
+      if (slideshowMode) {
+        stopSlideshow();
+      } else {
+        closeGallery();
+      }
+    }
+  });
+
+document.addEventListener("DOMContentLoaded", function () {
+
+  renderFamilyTree(familyTreeData, "org");
+
+  $("#data").jstree({ "plugins": ["state"] });
+
+  // After jsTree has finished rendering, add (Bio) links to nodes that have bio data
+  /************************
+   * Start of Label Linkify
+   ************************/
+  // Wraps a phrase found in a tree label with a link, using DOM methods
+  // (not innerHTML) so the browser does not eject the nested <a>.
+  function linkifyPhrase(container, phrase, url) {
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node.parentElement && node.parentElement.classList.contains("tree-ext-link")) continue;
+      const idx = node.textContent.indexOf(phrase);
+      if (idx !== -1) {
+        const target = node.splitText(idx);
+        target.splitText(phrase.length);
+        const link = document.createElement("a");
+        link.textContent = phrase;
+        link.href = url;
+        link.target = "_blank";
+        link.className = "tree-ext-link";
+        link.onclick = function (e) { e.stopPropagation(); };
+        target.parentNode.replaceChild(link, target);
+        return;
+      }
+    }
+  }
+  /************************
+   * End of Label Linkify
+   ************************/
+
+  $("#data").on("ready.jstree after_open.jstree", function () {
+    // Link cross-references in node labels to the Higgins site
+    $("#data li > a.jstree-anchor").each(function () {
+      linkifyPhrase(this, "Nan Folan", "https://sconnolly1105.github.io/higgins/?search=Nan Aug 18");
+      linkifyPhrase(this, "Higgins Family Tree", "https://sconnolly1105.github.io/higgins/?search=Nan Aug 18");
+    });
+    $("#data li[data-bio]").each(function () {
+      const li = this;
+      const anchor = $(li).children("a.jstree-anchor").first();
+      if (anchor.length && anchor.find(".bio-link").length === 0 && li.getAttribute("data-bioactive") === "active") {
+        const bioLink = document.createElement("a");
+        bioLink.textContent = " (Bio)";       // Add a Bio link at the end of each node details
+        bioLink.href = "#";
+        bioLink.className = "bio-link";
+        bioLink.style.fontSize = "0.85em";
+		    bioLink.style.fontStyle = "italic";
+        bioLink.onclick = function (e) {
+          e.stopPropagation();
+          // Visually select this node in the tree
+          $("#data").jstree("deselect_all");
+          $("#data").jstree("select_node", li.id, true); // true = suppress activate_node event
+          // Show the bio directly
+          closeDiv();
+          showBio(li.getAttribute("data-bio"));
+          return false;
+        };
+        anchor[0].appendChild(bioLink);
+      }
+    });
+  });
+
+  $("#data").on("activate_node.jstree", function (e, data) {
+    const li = document.getElementById(data.node.id);
+    const bio = li ? li.getAttribute("data-bio") : null;
+    const bioActive = li ? li.getAttribute("data-bioactive") : null;
+    closeDiv();
+    if (bio && bioActive === "active") showBio(bio);    // only show bio if it exists and is active
+  });
+
+  $("#data").on("open_node.jstree", function (e, data) {
+    closeDiv();
+  });
+
+  $("#data").on("close_node.jstree", function (e, data) {
+    closeDiv();
+  });
+
+  /************************
+   * Start of Search JS
+   ************************/
+  // Searches all node labels for the query text (case-insensitive)
+  function searchTree(query) {
+    const tree = $("#data").jstree(true);
+    const matches = [];
+    const all = tree.get_json("#", { flat: true });
+    const q = query.toLowerCase();
+    all.forEach(function (n) {
+      if (n.text.toLowerCase().indexOf(q) !== -1) {
+        matches.push({ id: n.id, text: n.text });
+      }
+    });
+    return matches;
+  }
+
+  // Opens all ancestors of the chosen node, selects it, scrolls it into view.
+  // select_node fires activate_node, so the Bio popup appears automatically
+  // if bioActive === "active".
+  function goToNode(nodeId) {
+    const tree = $("#data").jstree(true);
+    tree._open_to(nodeId);
+    tree.deselect_all();
+    tree.select_node(nodeId);
+    document.getElementById("search-results").style.display = "none";
+    document.getElementById("tree-search").value = "";
+    const el = document.getElementById(nodeId);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  document.getElementById("tree-search").addEventListener("keyup", function (e) {
+    const resultsEl = document.getElementById("search-results");
+    const query = this.value.trim();
+
+    if (query.length < 2) {           // require at least 2 characters
+      resultsEl.style.display = "none";
+      return;
+    }
+
+    const matches = searchTree(query);
+
+    if (e.key === "Enter" && matches.length === 1) {
+      goToNode(matches[0].id);        // unique match — go straight there
+      return;
+    }
+
+    if (matches.length === 0) {
+      resultsEl.innerHTML = "<div style='cursor:default'>No matches found</div>";
+      resultsEl.style.display = "block";
+      return;
+    }
+
+    // Build the dropdown of matches (full node text so the user can
+    // distinguish between people with the same first name)
+    resultsEl.innerHTML = "";
+    matches.forEach(function (m) {
+      const div = document.createElement("div");
+      div.textContent = m.text.replace(/\s*\(Bio\)\s*$/, "");  // strip trailing (Bio) label
+      div.onclick = function () { goToNode(m.id); };
+      resultsEl.appendChild(div);
+    });
+    resultsEl.style.display = "block";
+  });
+
+  // Hide the dropdown when clicking elsewhere on the page
+  document.addEventListener("click", function (e) {
+    if (!document.getElementById("search-wrap").contains(e.target)) {
+      document.getElementById("search-results").style.display = "none";
+    }
+  });
+  /************************
+   * End of Search JS
+   ************************/
+
+});
+  </script>
+</body>
+</html>
