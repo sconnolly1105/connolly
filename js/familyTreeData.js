@@ -4,7 +4,7 @@
 // bioActive: "inactive" = scaffold only, (Bio) link hidden in tree
 
 const familyTreeData = {
-  label: "Larry Conneely ",
+  label: "Larry Conneely",
   opened: true,
   bioActive: "inactive",
   bio: `Name:				#b##u#Larry Conneely#!u##!b#
